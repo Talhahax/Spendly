@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Spendly",
+    "slug": "spendly",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./icon.png",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "userInterfaceStyle": "dark",
+      "bundleIdentifier": "com.talhahax.spendly",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "userInterfaceStyle": "dark",
+      "package": "com.talhahax.spendly",
+      "versionCode": 1,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "backgroundColor": "#000000",
+    "main": "./App.tsx",
+    "sdkVersion": "53.0.0",
+    "notification": {
+      "icon": "./icon.png",
+      "color": "#6366f1"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./icon.png",
+          "color": "#6366f1",
+          "sounds": []
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "12e62e82-6b26-456c-882e-52843f661069"
+      }
+    }
+  }
+}
