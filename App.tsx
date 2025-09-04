@@ -87,6 +87,11 @@ const BudgetTracker: React.FC = memo(() => {
   const [transactionViewTab, setTransactionViewTab] = useState<TabType>('expense');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [activeBottomTab, setActiveBottomTab] = useState<BottomTabType>('add');
+  const [forceRefresh, setForceRefresh] = useState<number>(0);
+  const [localExpenses, setLocalExpenses] = useState<Expense[]>([]);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [manualRefresh, setManualRefresh] = useState<number>(0);
+  const [directTotalSavings, setDirectTotalSavings] = useState<number>(0);
   
   // Modal states
   const [showCategoryPicker, setShowCategoryPicker] = useState<boolean>(false);
@@ -152,6 +157,39 @@ const BudgetTracker: React.FC = memo(() => {
 
     return () => subscription.remove();
   }, [loadData, fadeAnim, slideAnim]);
+
+  // Debug: Track expenses state changes
+  useEffect(() => {
+    console.log('Debug - App.tsx expenses state changed:', {
+      expensesCount: expenses.length,
+      savingsExpenses: expenses.filter(e => e.category === 'Savings'),
+      allExpenses: expenses
+    });
+    
+    // Sync local expenses with useData expenses
+    setLocalExpenses(expenses);
+    
+    // Initialize direct total savings
+    const currentSavings = expenses
+      .filter(expense => expense.category === 'Savings' && expense.date.startsWith(viewingMonth))
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    setDirectTotalSavings(currentSavings);
+    
+    // Force refresh when expenses change to ensure UI updates
+    if (expenses.length > 0) {
+      setForceRefresh(prev => prev + 1);
+      console.log('Debug - Expenses changed, forcing UI refresh');
+    }
+  }, [expenses, viewingMonth]);
+
+  // Debug: Track viewing month changes
+  useEffect(() => {
+    console.log('Debug - Viewing month changed:', {
+      viewingMonth,
+      currentDate: new Date().toISOString().split('T')[0],
+      currentMonth: new Date().toISOString().substring(0, 7)
+    });
+  }, [viewingMonth]);
 
   // Load goals data
   const loadGoals = useCallback(async (): Promise<void> => {
@@ -242,6 +280,11 @@ const BudgetTracker: React.FC = memo(() => {
       setGoals(updatedGoals);
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
       
+      // Force UI refresh to update goals screen instantly
+      setForceRefresh(prev => prev + 1);
+      setRefreshKey(prev => prev + 1);
+      setManualRefresh(prev => prev + 1);
+      
       // Reset form
       setGoalForm(DEFAULT_FORM_VALUES.GOAL);
       setShowGoalModal(false);
@@ -269,6 +312,11 @@ const BudgetTracker: React.FC = memo(() => {
       
       setGoals(updatedGoals);
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
+      
+      // Force UI refresh to update goals screen instantly
+      setForceRefresh(prev => prev + 1);
+      setRefreshKey(prev => prev + 1);
+      setManualRefresh(prev => prev + 1);
       
       // Reset form and close modal
       setGoalForm(DEFAULT_FORM_VALUES.GOAL);
@@ -308,6 +356,11 @@ const BudgetTracker: React.FC = memo(() => {
       const updatedGoals = goals.filter(goal => goal.id !== goalId);
       setGoals(updatedGoals);
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
+      
+      // Force UI refresh to update goals screen instantly
+      setForceRefresh(prev => prev + 1);
+      setRefreshKey(prev => prev + 1);
+      setManualRefresh(prev => prev + 1);
     } catch (error) {
       console.error('Error deleting goal:', error);
     }
@@ -386,6 +439,11 @@ const BudgetTracker: React.FC = memo(() => {
       setGoals(updatedGoals);
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
 
+      // Force UI refresh to update goals screen instantly
+      setForceRefresh(prev => prev + 1);
+      setRefreshKey(prev => prev + 1);
+      setManualRefresh(prev => prev + 1);
+
       // Check if goal is completed and trigger celebration
       const completedGoal = updatedGoals.find(goal => goal.id === goalId && goal.isCompleted);
       if (completedGoal) {
@@ -397,7 +455,7 @@ const BudgetTracker: React.FC = memo(() => {
   }, [savings, goals, triggerGoalCelebration]);
 
   // Form submission handlers
-  const handleExpenseSubmit = useCallback((): void => {
+  const handleExpenseSubmit = useCallback(async (): Promise<void> => {
     if (formData.amount && parseFloat(formData.amount) > 0) {
       console.log('Debug - Submitting expense:', {
         amount: formData.amount,
@@ -414,15 +472,37 @@ const BudgetTracker: React.FC = memo(() => {
         description: formData.description,
         date: formData.date
       };
+      
+      // Add expense first
       addExpense(newExpense);
+      
+      // Immediately update local expenses for instant UI update
+      setLocalExpenses(prev => [newExpense, ...prev]);
+      console.log('Debug - Updated local expenses immediately');
+      
+      // Force component re-render
+      setRefreshKey(prev => prev + 1);
+      setForceRefresh(prev => prev + 1);
       
       // Also add to savings array if it's a savings transaction
       if (formData.category === 'Savings') {
         console.log('Debug - Adding to savings array:', parseFloat(formData.amount));
-        addSavings(parseFloat(formData.amount), formData.description);
+        await addSavings(parseFloat(formData.amount), formData.description);
+        
+        // Direct state update for immediate UI response
+        setDirectTotalSavings(prev => prev + parseFloat(formData.amount));
+        console.log('Debug - Direct totalSavings updated:', directTotalSavings + parseFloat(formData.amount));
+        
+        // Force additional refresh
+        setRefreshKey(prev => prev + 1);
+        setForceRefresh(prev => prev + 1);
+        console.log('Debug - Forcing UI refresh after savings addition');
       }
       
+      // Clear form after successful submission
       setFormData(DEFAULT_FORM_VALUES.EXPENSE);
+      
+      console.log('Debug - Expense submission completed');
     }
   }, [formData, addExpense, addSavings]);
 
@@ -517,16 +597,18 @@ const BudgetTracker: React.FC = memo(() => {
 
   // Data calculations
   const currentMonthExpenses = useMemo(() => {
-    const filtered = expenses.filter(expense => expense.date.startsWith(viewingMonth));
-    console.log('Debug - Current month expenses:', {
+    const filtered = localExpenses.filter(expense => expense.date.startsWith(viewingMonth));
+    console.log('Debug - Current month expenses updated:', {
       viewingMonth,
-      allExpenses: expenses.length,
+      allExpenses: localExpenses.length,
       currentMonthExpenses: filtered.length,
-      expensesData: expenses,
-      filteredData: filtered
+      savingsInCurrentMonth: filtered.filter(e => e.category === 'Savings').length,
+      expensesData: localExpenses,
+      filteredData: filtered,
+      forceRefresh
     });
     return filtered;
-  }, [expenses, viewingMonth]);
+  }, [localExpenses, viewingMonth, forceRefresh]);
   
   const currentMonthIncome = useMemo(() => 
     income.filter(incomeItem => incomeItem.date.startsWith(viewingMonth)), [income, viewingMonth]);
@@ -542,25 +624,29 @@ const BudgetTracker: React.FC = memo(() => {
   const totalSavings = useMemo(() => {
     const savingsExpenses = currentMonthExpenses.filter(expense => expense.category === 'Savings');
     const total = calculateTotalAmount(savingsExpenses);
-    console.log('Debug - Savings calculation:', {
+    console.log('Debug - Savings calculation updated:', {
       allExpenses: currentMonthExpenses.length,
       savingsExpenses: savingsExpenses.length,
       savingsExpensesData: savingsExpenses,
-      totalSavings: total
+      totalSavings: total,
+      viewingMonth: viewingMonth,
+      forceRefresh,
+      refreshKey,
+      manualRefresh
     });
     return total;
-  }, [currentMonthExpenses]);
+  }, [currentMonthExpenses, viewingMonth, forceRefresh, refreshKey, manualRefresh]);
 
   // Calculate allocated and unallocated savings
   const allocatedSavings = useMemo(() => {
     return savings.reduce((total, saving) => {
       return saving.allocatedToGoal ? total + saving.amount : total;
     }, 0);
-  }, [savings]);
+  }, [savings, forceRefresh, refreshKey, manualRefresh]);
 
   const unallocatedSavings = useMemo(() => {
     return totalSavings - allocatedSavings;
-  }, [totalSavings, allocatedSavings]);
+  }, [totalSavings, allocatedSavings, forceRefresh, refreshKey, manualRefresh]);
   const netAmount = useMemo(() => totalIncome - totalSpent, [totalIncome, totalSpent]);
 
   const categoryTotals = useMemo(() => calculateCategoryBreakdown(actualExpenses), [actualExpenses]);
@@ -831,17 +917,17 @@ const BudgetTracker: React.FC = memo(() => {
     };
 
     return (
-      <ScrollView 
-        style={styles.screenContainer} 
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="none"
-      >
-        <View style={styles.screenHeader}>
+    <ScrollView 
+      style={styles.screenContainer} 
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="always"
+      keyboardDismissMode="none"
+    >
+      <View style={styles.screenHeader}>
           <View style={styles.goalsHeaderTop}>
             <View>
-              <Text style={styles.screenTitle}>Financial Goals</Text>
-              <Text style={styles.screenSubtitle}>Set and track your money goals</Text>
+        <Text style={styles.screenTitle}>Financial Goals</Text>
+        <Text style={styles.screenSubtitle}>Set and track your money goals</Text>
             </View>
             <TouchableOpacity
               style={styles.addGoalButton}
@@ -859,19 +945,19 @@ const BudgetTracker: React.FC = memo(() => {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
-
+      </View>
+      
         {/* Goals Overview */}
         {goals.length > 0 && (
           <View style={styles.goalsOverviewContainer}>
-            <LinearGradient
-              colors={['rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.1)']}
+        <LinearGradient
+          colors={['rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.1)']}
               style={styles.goalsOverviewCard}
             >
               <View style={styles.goalsOverviewHeader}>
                 <Ionicons name="trophy-outline" size={24} color="#6366f1" />
                 <Text style={styles.goalsOverviewTitle}>Goals Overview</Text>
-              </View>
+          </View>
               
               <View style={styles.goalsOverviewStats}>
                 <View style={styles.goalsOverviewStat}>
@@ -894,14 +980,14 @@ const BudgetTracker: React.FC = memo(() => {
         {/* Savings Instructions */}
         {totalSavings === 0 && goals.length > 0 && (
           <View style={styles.savingsInstructionsContainer}>
-            <LinearGradient
+              <LinearGradient
               colors={['rgba(100, 116, 139, 0.2)', 'rgba(71, 85, 105, 0.1)']}
               style={styles.savingsInstructionsCard}
             >
               <View style={styles.savingsInstructionsHeader}>
                 <Ionicons name="information-circle-outline" size={24} color="#64748b" />
                 <Text style={styles.savingsInstructionsTitle}>How to Add Savings</Text>
-              </View>
+            </View>
               <Text style={styles.savingsInstructionsText}>
                 1. Go to the "Add" tab{'\n'}
                 2. Select "Savings" as the category{'\n'}
@@ -920,51 +1006,95 @@ const BudgetTracker: React.FC = memo(() => {
                 <Text style={styles.debugText}>
                   Debug: Available: ${unallocatedSavings.toFixed(2)}
                 </Text>
-              </View>
-            </LinearGradient>
+                <Text style={styles.debugText}>
+                  Debug: Current Month: {viewingMonth}
+                </Text>
+                <Text style={styles.debugText}>
+                  Debug: Savings Expenses: {currentMonthExpenses.filter(e => e.category === 'Savings').length}
+                </Text>
+                <Text style={styles.debugText}>
+                  Debug: All Expenses: {currentMonthExpenses.length}
+            </Text>
+          </View>
+        </LinearGradient>
           </View>
         )}
 
         {/* Savings Section */}
         {totalSavings > 0 && (
           <View style={styles.savingsSection}>
-            <LinearGradient
+        <LinearGradient
               colors={['rgba(0, 184, 148, 0.2)', 'rgba(0, 160, 133, 0.1)']}
               style={styles.savingsCard}
             >
               <View style={styles.savingsHeader}>
                 <Ionicons name="wallet-outline" size={24} color="#00b894" />
                 <Text style={styles.savingsTitle}>Total Savings</Text>
-              </View>
+          </View>
               
               <View style={styles.savingsContent}>
-                <Text style={styles.savingsAmount}>${totalSavings.toFixed(2)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.savingsAmount}>${(directTotalSavings || totalSavings).toFixed(2)}</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      // Recalculate direct total savings from current expenses
+                      const currentSavings = localExpenses
+                        .filter(expense => expense.category === 'Savings' && expense.date.startsWith(viewingMonth))
+                        .reduce((sum, expense) => sum + expense.amount, 0);
+                      
+                      setDirectTotalSavings(currentSavings);
+                      setRefreshKey(prev => prev + 1);
+                      setForceRefresh(prev => prev + 1);
+                      setManualRefresh(prev => prev + 1);
+                      console.log('Debug - Manual refresh triggered', { 
+                        refreshKey: refreshKey + 1, 
+                        forceRefresh: forceRefresh + 1, 
+                        manualRefresh: manualRefresh + 1,
+                        directTotalSavings: currentSavings
+                      });
+                    }}
+                    style={{ 
+                      backgroundColor: '#00b894', 
+                      padding: 8, 
+                      borderRadius: 6,
+                      marginLeft: 10
+                    }}
+                  >
+                    <Ionicons name="refresh" size={16} color="white" />
+                  </TouchableOpacity>
+                </View>
                 
                 {/* Debug Info */}
                 <View style={styles.debugInfo}>
                   <Text style={styles.debugText}>
-                    Debug: Total: ${totalSavings.toFixed(2)} | Allocated: ${allocatedSavings.toFixed(2)} | Available: ${unallocatedSavings.toFixed(2)}
+                    Debug: Total: ${(directTotalSavings || totalSavings).toFixed(2)} | Calculated: ${totalSavings.toFixed(2)} | Direct: ${directTotalSavings.toFixed(2)}
+          </Text>
+                  <Text style={styles.debugText}>
+                    Debug: Month: {viewingMonth} | Savings Count: {currentMonthExpenses.filter(e => e.category === 'Savings').length}
                   </Text>
+                                  <Text style={styles.debugText}>
+                  Debug: All Expenses: {currentMonthExpenses.length} | Total Expenses: {localExpenses.length}
+                </Text>
                 </View>
                 
                 {/* Savings Progress Bar */}
                 <View style={styles.savingsProgressContainer}>
                   <View style={styles.savingsProgressBar}>
-                    <LinearGradient
+              <LinearGradient
                       colors={['#00b894', '#00a085']}
                       style={[
                         styles.savingsProgressFill, 
                         { width: `${totalSavings > 0 ? (allocatedSavings / totalSavings) * 100 : 0}%` }
                       ]}
-                    />
-                  </View>
+              />
+            </View>
                   <View style={styles.savingsProgressLabels}>
                     <View style={styles.savingsProgressLabel}>
                       <View style={[styles.savingsProgressDot, { backgroundColor: '#00b894' }]} />
                       <Text style={styles.savingsProgressText}>
                         Allocated: ${allocatedSavings.toFixed(2)}
-                      </Text>
-                    </View>
+            </Text>
+          </View>
                     <View style={styles.savingsProgressLabel}>
                       <View style={[styles.savingsProgressDot, { backgroundColor: '#64748b' }]} />
                       <Text style={styles.savingsProgressText}>
@@ -983,14 +1113,14 @@ const BudgetTracker: React.FC = memo(() => {
                   onPress={() => setShowSavingsAllocationModal(true)}
                   disabled={unallocatedSavings <= 0}
                 >
-                  <LinearGradient
+        <LinearGradient
                     colors={unallocatedSavings > 0 ? ['#00b894', '#00a085'] : ['#64748b', '#475569']}
                     style={styles.allocateSavingsButtonGradient}
                   >
                     <Ionicons name="arrow-forward" size={16} color="#ffffff" />
                     <Text style={styles.allocateSavingsButtonText}>
                       {unallocatedSavings > 0 ? 'Allocate to Goals' : 'All Allocated'}
-                    </Text>
+          </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -1017,17 +1147,17 @@ const BudgetTracker: React.FC = memo(() => {
         {/* Empty State */}
         {goals.length === 0 && (
           <View style={styles.goalsEmptyContainer}>
-            <LinearGradient
+              <LinearGradient
               colors={['rgba(100, 116, 139, 0.2)', 'rgba(71, 85, 105, 0.1)']}
               style={styles.goalsEmptyGradient}
             >
               <View style={styles.goalsEmptyIconContainer}>
                 <Ionicons name="flag-outline" size={80} color="#64748b" />
-              </View>
+            </View>
               <Text style={styles.goalsEmptyTitle}>No Goals Yet</Text>
               <Text style={styles.goalsEmptyText}>
                 Create your first financial goal to start tracking your progress
-              </Text>
+            </Text>
               <TouchableOpacity
                 style={styles.goalsEmptyButton}
                 onPress={() => {
@@ -1044,10 +1174,10 @@ const BudgetTracker: React.FC = memo(() => {
                   <Text style={styles.goalsEmptyButtonText}>Create Goal</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            </LinearGradient>
-          </View>
+        </LinearGradient>
+      </View>
         )}
-      </ScrollView>
+    </ScrollView>
     );
   }, [goals]);
 
@@ -1377,6 +1507,7 @@ const BudgetTracker: React.FC = memo(() => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="always"
             keyboardDismissMode="none"
+            scrollEnabled={!showCategoryPicker && !showSourcePicker}
           >
             <View style={styles.screenHeader}>
               <Text style={styles.screenTitle}>Add Transaction</Text>
@@ -1697,7 +1828,7 @@ const BudgetTracker: React.FC = memo(() => {
         return <StatsScreen />;
 
       case 'goals':
-        return <GoalsScreen />;
+        return <GoalsScreen key={`goals-${refreshKey}-${forceRefresh}-${manualRefresh}`} />;
 
       default:
         return <CategoryScreen />;

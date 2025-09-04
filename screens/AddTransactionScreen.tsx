@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Animated,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -113,12 +112,7 @@ const AddTransactionScreen: React.FC<AddTransactionScreenProps> = ({
   const isValid = validateFormData(currentFormData);
 
   return (
-    <ScrollView 
-      style={styles.screenContainer} 
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="always"
-      keyboardDismissMode="none"
-    >
+    <View style={styles.screenContainer}>
       <View style={styles.screenHeader}>
         <Text style={styles.screenTitle}>Add Transaction</Text>
         <Text style={styles.screenSubtitle}>Track your money flow</Text>
@@ -352,7 +346,7 @@ const AddTransactionScreen: React.FC<AddTransactionScreenProps> = ({
         title="Select Source"
         fadeAnim={fadeAnim}
       />
-    </ScrollView>
+    </View>
   );
 };
 
@@ -363,37 +357,37 @@ const styles = StyleSheet.create({
   },
   screenHeader: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
     backgroundColor: 'transparent',
   },
   screenTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#ffffff',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   screenSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
   },
   addTransactionContent: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
   },
   modernTabContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 24,
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 16,
   },
   modernTab: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -429,7 +423,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   modernFormGrid: {
-    gap: 24,
+    gap: 16,
   },
   fullWidthField: {
     width: '100%',
@@ -442,21 +436,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modernLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#ffffff',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   modernInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    minHeight: 56,
+    minHeight: 48,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
@@ -470,12 +464,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    minHeight: 56,
+    minHeight: 48,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
@@ -489,12 +483,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    minHeight: 56,
+    minHeight: 48,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
@@ -505,11 +499,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   modernInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#ffffff',
     fontWeight: '500',
     textAlignVertical: 'center',
@@ -522,14 +516,14 @@ const styles = StyleSheet.create({
   },
   modernInputText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#ffffff',
     fontWeight: '500',
   },
   modernSubmitButton: {
-    marginTop: 16,
-    marginBottom: 24,
-    borderRadius: 18,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000000',
     shadowOffset: {
@@ -547,14 +541,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 28,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
   },
   modernSubmitText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    marginLeft: 12,
+    marginLeft: 10,
   },
 });
 

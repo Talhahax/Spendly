@@ -6,10 +6,10 @@ import {
   ScrollView,
   StyleSheet,
   Animated,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { PickerModalProps } from '../types';
 
 interface ExtendedPickerModalProps extends PickerModalProps {
@@ -31,17 +31,31 @@ const PickerModal: React.FC<ExtendedPickerModalProps> = memo(({
   if (!visible) return null;
   
   return (
-    <View style={styles.modalOverlay}>
-      <BlurView intensity={100} style={styles.modalBlur}>
-        <Animated.View 
-          style={[
-            styles.modalContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: fadeAnim }]
-            }
-          ]}
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="none"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.modalBlur} 
+          activeOpacity={1} 
+          onPress={onClose}
         >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Animated.View 
+              style={[
+                styles.modalContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: fadeAnim }]
+                }
+              ]}
+            >
           <LinearGradient
             colors={['#1a1a2e', '#16213e']}
             style={styles.modalGradient}
@@ -102,21 +116,20 @@ const PickerModal: React.FC<ExtendedPickerModalProps> = memo(({
                               ))}
             </ScrollView>
             </LinearGradient>
-        </Animated.View>
-      </BlurView>
-    </View>
+            </Animated.View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
+    </Modal>
   );
 });
 
 const styles = StyleSheet.create({
   modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1000,
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalBlur: {
     flex: 1,

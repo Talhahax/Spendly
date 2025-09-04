@@ -10,18 +10,39 @@ export const useData = () => {
 
   const loadData = useCallback(async (): Promise<void> => {
     try {
+      console.log('Debug - useData loadData called');
+      
       const expensesData = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
       const incomeData = await AsyncStorage.getItem(STORAGE_KEYS.INCOME);
       const archivesData = await AsyncStorage.getItem(STORAGE_KEYS.MONTHLY_ARCHIVES);
       
+      console.log('Debug - useData loadData raw data:', {
+        expensesDataExists: !!expensesData,
+        incomeDataExists: !!incomeData,
+        archivesDataExists: !!archivesData
+      });
+      
       if (expensesData) {
-        setExpenses(JSON.parse(expensesData));
+        const parsedExpenses = JSON.parse(expensesData);
+        setExpenses(parsedExpenses);
+        console.log('Debug - useData loadData expenses loaded:', {
+          expensesCount: parsedExpenses.length,
+          savingsExpenses: parsedExpenses.filter((e: Expense) => e.category === 'Savings')
+        });
       }
       if (incomeData) {
-        setIncome(JSON.parse(incomeData));
+        const parsedIncome = JSON.parse(incomeData);
+        setIncome(parsedIncome);
+        console.log('Debug - useData loadData income loaded:', {
+          incomeCount: parsedIncome.length
+        });
       }
       if (archivesData) {
-        setMonthlyArchives(JSON.parse(archivesData));
+        const parsedArchives = JSON.parse(archivesData);
+        setMonthlyArchives(parsedArchives);
+        console.log('Debug - useData loadData archives loaded:', {
+          archivesCount: parsedArchives.length
+        });
       }
       
     } catch (error) {
@@ -31,8 +52,16 @@ export const useData = () => {
 
   const saveData = useCallback(async (expensesData: Expense[], incomeData: Income[]): Promise<void> => {
     try {
+      console.log('Debug - useData saveData called:', {
+        expensesCount: expensesData.length,
+        incomeCount: incomeData.length,
+        savingsExpenses: expensesData.filter(e => e.category === 'Savings')
+      });
+      
       await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expensesData));
       await AsyncStorage.setItem(STORAGE_KEYS.INCOME, JSON.stringify(incomeData));
+      
+      console.log('Debug - useData saveData completed successfully');
     } catch (error) {
       console.error('Error saving data:', error);
     }
@@ -47,9 +76,21 @@ export const useData = () => {
   }, []);
 
   const addExpense = useCallback((newExpense: Expense): void => {
+    console.log('Debug - useData addExpense called:', {
+      newExpense,
+      currentExpensesCount: expenses.length,
+      isSavings: newExpense.category === 'Savings',
+      currentExpenses: expenses
+    });
+    
     const updatedExpenses = [newExpense, ...expenses];
     setExpenses(updatedExpenses);
     saveData(updatedExpenses, income);
+    
+    console.log('Debug - useData addExpense completed:', {
+      newExpensesCount: updatedExpenses.length,
+      updatedExpenses: updatedExpenses
+    });
   }, [expenses, income, saveData]);
 
   const addIncome = useCallback((newIncome: Income): void => {
