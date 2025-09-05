@@ -44,6 +44,7 @@ const PickerModal: React.FC<ExtendedPickerModalProps> = memo(({
           onPress={onClose}
         >
           <TouchableOpacity 
+            style={styles.modalInner}
             activeOpacity={1} 
             onPress={(e) => e.stopPropagation()}
           >
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   modalBlur: {
     flex: 1,
@@ -145,9 +146,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  modalInner: {
+    width: '95%',
+  },
   pickerModalContainer: {
-    width: '75%',
-    maxHeight: '80%',
+    width: '100%',
+    maxHeight: '100%',
     borderRadius: 20,
     overflow: 'hidden',
   },
@@ -175,10 +179,11 @@ const styles = StyleSheet.create({
   },
   modalContentContainer: {
     paddingVertical: 10,
+    paddingHorizontal: 12,
     paddingBottom: 20,
   },
   modalItem: {
-    marginHorizontal: 20,
+    marginHorizontal: 12,
     marginVertical: 4,
     borderRadius: 12,
     overflow: 'hidden',

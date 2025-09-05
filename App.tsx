@@ -11,7 +11,6 @@ import {
   RefreshControl,
   Animated,
   Platform,
-  Alert,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +36,7 @@ import {
 } from './utils';
 import { useData } from './hooks/useData';
 import { NotificationService } from './services/notifications';
-import { PickerModal, DeleteConfirmDialog, TransactionItem, CategoryBreakdown } from './components';
+import { PickerModal, DeleteConfirmDialog, InsufficientBalanceDialog, TransactionItem, CategoryBreakdown } from './components';
 
 // const { width, height } = Dimensions.get('window'); // For future use
 
@@ -102,6 +101,8 @@ const BudgetTracker: React.FC = memo(() => {
   const [showProjectionInfo, setShowProjectionInfo] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [deleteItem, setDeleteItem] = useState<{ id: number; type: 'expense' | 'income'; description: string } | null>(null);
+  const [showInsufficientBalanceDialog, setShowInsufficientBalanceDialog] = useState<boolean>(false);
+  const [insufficientBalanceData, setInsufficientBalanceData] = useState<{ requiredAmount: number; currentBalance: number } | null>(null);
   
   // Goal modal states
   const [showGoalModal, setShowGoalModal] = useState<boolean>(false);
@@ -546,7 +547,18 @@ const BudgetTracker: React.FC = memo(() => {
     setDeleteItem(null);
   }, []);
 
+  // Insufficient balance dialog handlers
+  const handleCloseInsufficientBalance = useCallback(() => {
+    setShowInsufficientBalanceDialog(false);
+  }, []);
 
+  const handleAddSavingsFromDialog = useCallback(() => {
+    setShowInsufficientBalanceDialog(false);
+    setActiveBottomTab('add');
+    setActiveTab('expense');
+    // Set category to Savings to help user
+    setFormData(prev => ({ ...prev, category: 'Savings' }));
+  }, []);
 
   // Refresh handler
   const onRefresh = useCallback((): void => {
@@ -908,10 +920,11 @@ const BudgetTracker: React.FC = memo(() => {
                     }
 
                     if (unallocatedSavings < requiredAmount) {
-                      Alert.alert(
-                        'Insufficient Wallet Balance',
-                        `You need $${(requiredAmount - unallocatedSavings).toFixed(2)} more in your goals wallet to complete this goal. Add a Savings expense to fund it.`,
-                      );
+                      setInsufficientBalanceData({
+                        requiredAmount,
+                        currentBalance: unallocatedSavings
+                      });
+                      setShowInsufficientBalanceDialog(true);
                       return;
                     }
 
@@ -2038,6 +2051,15 @@ const BudgetTracker: React.FC = memo(() => {
           item={deleteItem}
           onConfirm={handleConfirmDelete}
           onCancel={handleCancelDelete}
+        />
+
+        {/* Insufficient Balance Dialog */}
+        <InsufficientBalanceDialog
+          visible={showInsufficientBalanceDialog}
+          requiredAmount={insufficientBalanceData?.requiredAmount || 0}
+          currentBalance={insufficientBalanceData?.currentBalance || 0}
+          onClose={handleCloseInsufficientBalance}
+          onAddSavings={handleAddSavingsFromDialog}
         />
 
         {/* Goal Modal */}
