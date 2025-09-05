@@ -1085,18 +1085,7 @@ const BudgetTracker: React.FC = memo(() => {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Debug Info */}
-                <View style={styles.debugInfo}>
-                  <Text style={styles.debugText}>
-                    Debug: Wallet: ${unallocatedSavings.toFixed(2)} | Calculated(month savings): ${totalSavings.toFixed(2)} | Direct: ${directTotalSavings.toFixed(2)}
-          </Text>
-                  <Text style={styles.debugText}>
-                    Debug: Month: {viewingMonth} | Savings Count: {currentMonthExpenses.filter(e => e.category === 'Savings').length}
-                  </Text>
-                                  <Text style={styles.debugText}>
-                  Debug: All Expenses: {currentMonthExpenses.length} | Total Expenses: {localExpenses.length}
-                </Text>
-                </View>
+                
                 
                 {/* Savings Progress Bar */}
                 <View style={styles.savingsProgressContainer}>
@@ -1119,7 +1108,7 @@ const BudgetTracker: React.FC = memo(() => {
                     <View style={styles.savingsProgressLabel}>
                       <View style={[styles.savingsProgressDot, { backgroundColor: '#64748b' }]} />
                       <Text style={styles.savingsProgressText}>
-                        Wallet: ${unallocatedSavings.toFixed(2)}
+                         Wallet: ${unallocatedSavings.toFixed(2)}
                       </Text>
                     </View>
                   </View>
@@ -4342,6 +4331,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginRight: 6,
+    marginLeft: 6
   },
   savingsProgressText: {
     fontSize: 12,
