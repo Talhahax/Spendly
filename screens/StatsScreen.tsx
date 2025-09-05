@@ -116,7 +116,7 @@ const StatsScreen: React.FC<StatsScreenProps> = ({
           title="Net Amount"
           amount={netAmount}
           icon="wallet"
-          gradient={netAmount >= 0 ? ['#3b82f6', '#2563eb'] : ['#f59e0b', '#d97706']}
+          gradient={netAmount >= 0 ? ['#60a5fa', '#3b82f6'] : ['#1d4ed8', '#1e40af']}
           fadeAnim={fadeAnim}
           slideAnim={slideAnim}
         />
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   categoryBreakdownContainer: {
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginBottom: 20,
   },
   categoryBreakdownTitle: {

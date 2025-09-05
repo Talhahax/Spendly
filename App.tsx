@@ -1051,38 +1051,35 @@ const BudgetTracker: React.FC = memo(() => {
               style={styles.savingsCard}
             >
               <View style={styles.savingsHeader}>
-                <Ionicons name="wallet-outline" size={24} color="#00b894" />
-                <Text style={styles.savingsTitle}>Goals Wallet</Text>
+                <View style={styles.savingsHeaderLeft}>
+                  <Ionicons name="wallet-outline" size={24} color="#00b894" />
+                  <Text style={styles.savingsTitle}>Goals Wallet</Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => {
+                    // Recalculate direct total savings from current expenses
+                    // Refresh keys are still useful to force memo recalcs; wallet derives from state
+                    const currentSavings = unallocatedSavings;
+                    setDirectTotalSavings(currentSavings);
+                    setRefreshKey(prev => prev + 1);
+                    setForceRefresh(prev => prev + 1);
+                    setManualRefresh(prev => prev + 1);
+                    console.log('Debug - Manual refresh triggered', { 
+                      refreshKey: refreshKey + 1, 
+                      forceRefresh: forceRefresh + 1, 
+                      manualRefresh: manualRefresh + 1,
+                      directTotalSavings: currentSavings
+                    });
+                  }}
+                  style={styles.walletRefreshButton}
+                >
+                  <Ionicons name="refresh" size={18} color="#00b894" />
+                </TouchableOpacity>
           </View>
               
               <View style={styles.savingsContent}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={styles.savingsAmount}>${unallocatedSavings.toFixed(2)}</Text>
-                  <TouchableOpacity 
-                    onPress={() => {
-                      // Recalculate direct total savings from current expenses
-                      // Refresh keys are still useful to force memo recalcs; wallet derives from state
-                      const currentSavings = unallocatedSavings;
-                      setDirectTotalSavings(currentSavings);
-                      setRefreshKey(prev => prev + 1);
-                      setForceRefresh(prev => prev + 1);
-                      setManualRefresh(prev => prev + 1);
-                      console.log('Debug - Manual refresh triggered', { 
-                        refreshKey: refreshKey + 1, 
-                        forceRefresh: forceRefresh + 1, 
-                        manualRefresh: manualRefresh + 1,
-                        directTotalSavings: currentSavings
-                      });
-                    }}
-                    style={{ 
-                      backgroundColor: '#00b894', 
-                      padding: 8, 
-                      borderRadius: 6,
-                      marginLeft: 10
-                    }}
-                  >
-                    <Ionicons name="refresh" size={16} color="white" />
-                  </TouchableOpacity>
                 </View>
                 
                 
@@ -1408,13 +1405,13 @@ const BudgetTracker: React.FC = memo(() => {
               title: 'Total Savings',
               amount: totalSavings,
               icon: 'wallet',
-              gradient: ['#00b894', '#00a085']
+              gradient: ['#40E0D0', '#20B2AA']
             })}
             {renderStatsCard({
               title: 'Net Amount',
               amount: netAmount,
               icon: 'wallet',
-              gradient: netAmount >= 0 ? ['#10b981', '#059669'] : ['#ef4444', '#dc2626']
+              gradient: netAmount >= 0 ? ['#60a5fa', '#3b82f6'] : ['#1d4ed8', '#1e40af']
             })}
             {viewingMonth === getCurrentMonth() && (() => {
               const isPositive = projectionData.projectedNet >= 0;
@@ -1522,13 +1519,14 @@ const BudgetTracker: React.FC = memo(() => {
         return <TransactionsScreen />;
       case 'add':
         return (
-          <ScrollView 
-            style={styles.screenContainer} 
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="always"
-            keyboardDismissMode="none"
-            scrollEnabled={!showCategoryPicker && !showSourcePicker}
-          >
+          <View style={styles.screenContainer}>
+            <ScrollView 
+              style={styles.screenScrollView} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              keyboardDismissMode="none"
+              scrollEnabled={!showCategoryPicker && !showSourcePicker}
+            >
             <View style={styles.screenHeader}>
               <Text style={styles.screenTitle}>Add Transaction</Text>
               <Text style={styles.screenSubtitle}>Track your money flow</Text>
@@ -1716,6 +1714,8 @@ const BudgetTracker: React.FC = memo(() => {
               />
             )}
 
+            </ScrollView>
+
             {/* Category Picker Modal */}
             <PickerModal
               visible={showCategoryPicker}
@@ -1737,10 +1737,7 @@ const BudgetTracker: React.FC = memo(() => {
               title="Select Source"
               fadeAnim={fadeAnim}
             />
-
-
-
-          </ScrollView>
+          </View>
         );
 
       case 'transactions':
@@ -2507,7 +2504,7 @@ const BudgetTracker: React.FC = memo(() => {
                           </View>
                           <View style={styles.reportStatItem}>
                             <Text style={styles.reportStatLabel}>Net Amount</Text>
-                            <Text style={[styles.reportStatValue, { color: reportData.netAmount >= 0 ? '#10b981' : '#ef4444' }]}>
+                            <Text style={[styles.reportStatValue, { color: reportData.netAmount >= 0 ? '#60a5fa' : '#1d4ed8' }]}>
                               ${reportData.netAmount.toFixed(2)}
                             </Text>
                           </View>
@@ -2714,7 +2711,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomNavigation: {
-    paddingTop: 10,
+    paddingTop: 0,
     paddingBottom: Platform.OS === 'ios' ? 15 : 45,
   },
   bottomNavigationGradient: {
@@ -2739,7 +2736,10 @@ const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingBottom: 20,
+  },
+  screenScrollView: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   screenHeader: {
     paddingHorizontal: 20,
@@ -2915,7 +2915,6 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   // Stats Screen Styles
   statsCardsContainer: {
@@ -2950,7 +2949,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   categoryBreakdownContainer: {
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginBottom: 20,
   },
   categoryBreakdownTitle: {
@@ -3204,7 +3203,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nestedFlatListContent: {
-    paddingBottom: 20,
   },
   emptyState: {
     flex: 1,
@@ -4160,13 +4158,25 @@ const styles = StyleSheet.create({
   savingsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  savingsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   savingsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
     marginLeft: 12,
+  },
+  walletRefreshButton: {
+    backgroundColor: 'rgba(0, 184, 148, 0.2)',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 148, 0.3)',
   },
   savingsContent: {
     alignItems: 'center',

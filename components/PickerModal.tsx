@@ -49,7 +49,7 @@ const PickerModal: React.FC<ExtendedPickerModalProps> = memo(({
           >
             <Animated.View 
               style={[
-                styles.modalContainer,
+                styles.pickerModalContainer,
                 {
                   opacity: fadeAnim,
                   transform: [{ scale: fadeAnim }]
@@ -94,7 +94,11 @@ const PickerModal: React.FC<ExtendedPickerModalProps> = memo(({
                         {renderItem ? (
                           renderItem(item)
                         ) : (
-                          <Text style={styles.modalItemTextSelected}>
+                          <Text 
+                            style={styles.modalItemTextSelected}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
                             {item}
                           </Text>
                         )}
@@ -106,7 +110,11 @@ const PickerModal: React.FC<ExtendedPickerModalProps> = memo(({
                       {renderItem ? (
                         renderItem(item)
                       ) : (
-                        <Text style={styles.modalItemText}>
+                        <Text 
+                          style={styles.modalItemText}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
                           {item}
                         </Text>
                       )}
@@ -135,9 +143,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
-  modalContainer: {
-    width: '90%',
+  pickerModalContainer: {
+    width: '75%',
     maxHeight: '80%',
     borderRadius: 20,
     overflow: 'hidden',

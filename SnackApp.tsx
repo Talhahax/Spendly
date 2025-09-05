@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
   categoryPercentage: { fontSize: 12, color: '#a3a3a3' },
   emptyCategoryText: { textAlign: 'center', color: '#a3a3a3', paddingVertical: 32 },
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modalContainer: { backgroundColor: '#1a1a1a', borderRadius: 12, width: width * 0.8, maxHeight: '70%', borderWidth: 1, borderColor: '#333333' },
+  modalContainer: { backgroundColor: '#1a1a1a', borderRadius: 12, width: width * 0.95, maxHeight: '70%', borderWidth: 1, borderColor: '#333333' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#2a2a2a' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#ffffff' },
   modalContent: { maxHeight: 300 },
