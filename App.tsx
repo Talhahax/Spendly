@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Animated,
   Platform,
+  Alert,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -241,7 +242,7 @@ const BudgetTracker: React.FC = memo(() => {
     loadGoals();
   }, [loadGoals]);
 
-  // Load savings data
+  // Load savings data (allocations ledger)
   const loadSavings = useCallback(async (): Promise<void> => {
     try {
       const storedSavings = await AsyncStorage.getItem(STORAGE_KEYS.SAVINGS);
@@ -621,31 +622,32 @@ const BudgetTracker: React.FC = memo(() => {
   
   const totalSpent = useMemo(() => calculateTotalAmount(actualExpenses), [actualExpenses]);
   const totalIncome = useMemo(() => calculateTotalAmount(currentMonthIncome), [currentMonthIncome]);
+  // Goals Wallet: Sum of Savings expenses feeds the wallet; allocations subtract.
   const totalSavings = useMemo(() => {
-    const savingsExpenses = currentMonthExpenses.filter(expense => expense.category === 'Savings');
-    const total = calculateTotalAmount(savingsExpenses);
-    console.log('Debug - Savings calculation updated:', {
-      allExpenses: currentMonthExpenses.length,
-      savingsExpenses: savingsExpenses.length,
-      savingsExpensesData: savingsExpenses,
+    const savingsExpensesAllTime = expenses.filter(expense => expense.category === 'Savings');
+    const total = calculateTotalAmount(savingsExpensesAllTime);
+    console.log('Debug - Wallet calculation updated (all-time savings):', {
+      allExpenses: expenses.length,
+      savingsExpenses: savingsExpensesAllTime.length,
       totalSavings: total,
-      viewingMonth: viewingMonth,
+      viewingMonth,
       forceRefresh,
       refreshKey,
       manualRefresh
     });
     return total;
-  }, [currentMonthExpenses, viewingMonth, forceRefresh, refreshKey, manualRefresh]);
+  }, [expenses, viewingMonth, forceRefresh, refreshKey, manualRefresh]);
 
-  // Calculate allocated and unallocated savings
+  // Sum of amounts already allocated to goals
   const allocatedSavings = useMemo(() => {
     return savings.reduce((total, saving) => {
       return saving.allocatedToGoal ? total + saving.amount : total;
     }, 0);
   }, [savings, forceRefresh, refreshKey, manualRefresh]);
 
+  // Wallet balance = totalSavings (this month) - allocatedSavings (all-time tracked)
   const unallocatedSavings = useMemo(() => {
-    return totalSavings - allocatedSavings;
+    return Math.max(0, totalSavings - allocatedSavings);
   }, [totalSavings, allocatedSavings, forceRefresh, refreshKey, manualRefresh]);
   const netAmount = useMemo(() => totalIncome - totalSpent, [totalIncome, totalSpent]);
 
@@ -893,11 +895,33 @@ const BudgetTracker: React.FC = memo(() => {
               {!isCompleted && (
                 <TouchableOpacity
                   style={styles.modernGoalCompleteButton}
-                  onPress={() => {
+                  onPress={async () => {
+                    const requiredAmount = Math.max(0, goal.targetAmount - goal.currentAmount);
+                    if (requiredAmount === 0) {
+                      // Already fully funded; mark complete
+                      const updatedGoal = { ...goal, isCompleted: true, currentAmount: goal.targetAmount };
+                      const updatedGoals = goals.map(g => g.id === goal.id ? updatedGoal : g);
+                      setGoals(updatedGoals);
+                      await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
+                      triggerGoalCelebration(updatedGoal);
+                      return;
+                    }
+
+                    if (unallocatedSavings < requiredAmount) {
+                      Alert.alert(
+                        'Insufficient Wallet Balance',
+                        `You need $${(requiredAmount - unallocatedSavings).toFixed(2)} more in your goals wallet to complete this goal. Add a Savings expense to fund it.`,
+                      );
+                      return;
+                    }
+
+                    // Deduct from wallet by recording an allocation entry and update goal progress
+                    await allocateSavingsToGoal(goal.id, requiredAmount);
+
                     const updatedGoal = { ...goal, isCompleted: true, currentAmount: goal.targetAmount };
                     const updatedGoals = goals.map(g => g.id === goal.id ? updatedGoal : g);
                     setGoals(updatedGoals);
-                    AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
+                    await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals));
                     triggerGoalCelebration(updatedGoal);
                   }}
                 >
@@ -1020,28 +1044,25 @@ const BudgetTracker: React.FC = memo(() => {
           </View>
         )}
 
-        {/* Savings Section */}
-        {totalSavings > 0 && (
-          <View style={styles.savingsSection}>
+        {/* Goals Wallet Section - always visible */}
+        <View style={styles.savingsSection}>
         <LinearGradient
               colors={['rgba(0, 184, 148, 0.2)', 'rgba(0, 160, 133, 0.1)']}
               style={styles.savingsCard}
             >
               <View style={styles.savingsHeader}>
                 <Ionicons name="wallet-outline" size={24} color="#00b894" />
-                <Text style={styles.savingsTitle}>Total Savings</Text>
+                <Text style={styles.savingsTitle}>Goals Wallet</Text>
           </View>
               
               <View style={styles.savingsContent}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={styles.savingsAmount}>${(directTotalSavings || totalSavings).toFixed(2)}</Text>
+                  <Text style={styles.savingsAmount}>${unallocatedSavings.toFixed(2)}</Text>
                   <TouchableOpacity 
                     onPress={() => {
                       // Recalculate direct total savings from current expenses
-                      const currentSavings = localExpenses
-                        .filter(expense => expense.category === 'Savings' && expense.date.startsWith(viewingMonth))
-                        .reduce((sum, expense) => sum + expense.amount, 0);
-                      
+                      // Refresh keys are still useful to force memo recalcs; wallet derives from state
+                      const currentSavings = unallocatedSavings;
                       setDirectTotalSavings(currentSavings);
                       setRefreshKey(prev => prev + 1);
                       setForceRefresh(prev => prev + 1);
@@ -1067,7 +1088,7 @@ const BudgetTracker: React.FC = memo(() => {
                 {/* Debug Info */}
                 <View style={styles.debugInfo}>
                   <Text style={styles.debugText}>
-                    Debug: Total: ${(directTotalSavings || totalSavings).toFixed(2)} | Calculated: ${totalSavings.toFixed(2)} | Direct: ${directTotalSavings.toFixed(2)}
+                    Debug: Wallet: ${unallocatedSavings.toFixed(2)} | Calculated(month savings): ${totalSavings.toFixed(2)} | Direct: ${directTotalSavings.toFixed(2)}
           </Text>
                   <Text style={styles.debugText}>
                     Debug: Month: {viewingMonth} | Savings Count: {currentMonthExpenses.filter(e => e.category === 'Savings').length}
@@ -1084,7 +1105,7 @@ const BudgetTracker: React.FC = memo(() => {
                       colors={['#00b894', '#00a085']}
                       style={[
                         styles.savingsProgressFill, 
-                        { width: `${totalSavings > 0 ? (allocatedSavings / totalSavings) * 100 : 0}%` }
+                        { width: `${totalSavings > 0 ? (allocatedSavings / (allocatedSavings + unallocatedSavings)) * 100 : 0}%` }
                       ]}
               />
             </View>
@@ -1098,7 +1119,7 @@ const BudgetTracker: React.FC = memo(() => {
                     <View style={styles.savingsProgressLabel}>
                       <View style={[styles.savingsProgressDot, { backgroundColor: '#64748b' }]} />
                       <Text style={styles.savingsProgressText}>
-                        Available: ${unallocatedSavings.toFixed(2)}
+                        Wallet: ${unallocatedSavings.toFixed(2)}
                       </Text>
                     </View>
                   </View>
@@ -1119,14 +1140,13 @@ const BudgetTracker: React.FC = memo(() => {
                   >
                     <Ionicons name="arrow-forward" size={16} color="#ffffff" />
                     <Text style={styles.allocateSavingsButtonText}>
-                      {unallocatedSavings > 0 ? 'Allocate to Goals' : 'All Allocated'}
+                      {unallocatedSavings > 0 ? 'Allocate to Goals' : 'Wallet Empty'}
           </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
             </LinearGradient>
           </View>
-        )}
 
         {/* Active Goals */}
         {activeGoals.length > 0 && (
@@ -1179,7 +1199,18 @@ const BudgetTracker: React.FC = memo(() => {
         )}
     </ScrollView>
     );
-  }, [goals]);
+  }, [
+    goals,
+    unallocatedSavings,
+    allocatedSavings,
+    totalSavings,
+    viewingMonth,
+    currentMonthExpenses,
+    localExpenses,
+    refreshKey,
+    forceRefresh,
+    manualRefresh
+  ]);
 
   // Transactions Screen Component
   const TransactionsScreen = useCallback(() => {
