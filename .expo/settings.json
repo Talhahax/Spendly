@@ -1,3 +1,6 @@
 {
-  "urlRandomness": "itzNls0"
+  "urlRandomness": "itzNls0",
+  "dev": true,
+  "minify": false,
+  "https": false
 }

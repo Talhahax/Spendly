@@ -2667,12 +2667,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingTop: Platform.OS === 'ios' ? 50 : 16,
     paddingBottom: 0,
   },
   headerContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 0,
+    paddingTop: 0,
   },
   headerTop: {
     flexDirection: 'row',
@@ -2734,21 +2735,22 @@ const styles = StyleSheet.create({
   },
   bottomNavigation: {
     paddingTop: 0,
-    paddingBottom: Platform.OS === 'ios' ? 15 : 45,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 8,
   },
   bottomNavigationGradient: {
     flexDirection: 'row',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   bottomTab: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 0,
   },
   bottomTabLabel: {
     fontSize: 12,
@@ -3099,18 +3101,19 @@ const styles = StyleSheet.create({
     // Active state handled by color changes
   },
   bottomTabText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#64748b',
+    marginTop: 0,
   },
   bottomTabTextActive: {
     color: '#6366f1',
   },
   centerTab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginTop: Platform.OS === 'ios' ? 0 : -8,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginTop: Platform.OS === 'ios' ? -2 : -6,
     overflow: 'hidden',
   },
   centerTabGradient: {
